@@ -1,6 +1,17 @@
-# Zap Form — Setup Guide
+# Zap Form
 
-A static HTML contact form connected to **Supabase** (data storage) and **Zapier** (Gmail notifications), hosted on **Vercel**.
+A static HTML contact form hosted on **Vercel**. Form submissions are sent to a **Zapier** webhook which handles both Gmail notifications and Supabase data storage.
+
+## Architecture
+
+```
+User submits form
+      │
+      ▼
+Zapier Webhook
+      ├── Action 1: Gmail → Send email notification
+      └── Action 2: Supabase → Insert row into submissions table
+```
 
 ---
 
@@ -17,58 +28,55 @@ create table submissions (
   message    text not null,
   created_at timestamptz default now()
 );
-
--- Allow anonymous inserts (public form)
-alter table submissions enable row level security;
-
-create policy "Allow public inserts"
-  on submissions for insert
-  to anon
-  with check (true);
 ```
 
-3. Go to **Project Settings → API** and copy:
-   - **Project URL** → `SUPABASE_URL` in `script.js`
-   - **anon / public key** → `SUPABASE_ANON_KEY` in `script.js`
+> No RLS policy needed — Zapier connects via the service role key which bypasses RLS.
+
+3. Go to **Project Settings → API** and copy the **service role key** for use in Zapier.
 
 ---
 
 ## 2. Zapier Setup
 
 1. Go to [zapier.com](https://zapier.com) → **Create Zap**.
-2. **Trigger** → choose *Webhooks by Zapier* → *Catch Hook* → copy the webhook URL → paste as `ZAPIER_WEBHOOK_URL` in `script.js`.
+2. **Trigger** → *Webhooks by Zapier* → *Catch Hook* → copy the webhook URL.
 3. **Action 1** → *Gmail* → *Send Email*
    - To: your notification email
    - Subject: `New form submission from {{name}}`
    - Body: `Name: {{name}}\nEmail: {{email}}\nMessage: {{message}}`
-4. *(Optional)* **Action 2** → *Supabase* → *Create Row* (alternative to the direct REST call if you prefer Zapier to handle storage too).
+4. **Action 2** → *POST* → Type *json*
+   - URL: `input supbase url with table`
+   - Map fields: `name`, `email`, `message` → `{{name}}`, `{{email}}`, `{{message}}`
 5. Turn the Zap **ON**.
 
 ---
 
 ## 3. Update script.js
 
-Open `script.js` and replace the three placeholder values at the top:
+Paste your Zapier webhook URL at the top of `script.js`:
 
 ```js
-const SUPABASE_URL      = "https://<your-project-ref>.supabase.co";
-const SUPABASE_ANON_KEY = "<your-anon-key>";
-const ZAPIER_WEBHOOK_URL  = "https://hooks.zapier.com/hooks/catch/<your-hook-id>/";
+const ZAPIER_WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/<your-hook-id>/";
 ```
+
+> The request is sent without a `Content-Type` header to avoid a CORS preflight error — Zapier still parses the JSON body correctly.
 
 ---
 
-## 4. Deploy to Vercel
+## 4. Deploy to Vercel via GitHub
 
 ```bash
-# Install Vercel CLI (once)
-npm i -g vercel
-
-# From the project folder
-vercel
+git init
+git add .
+git commit -m "initial commit"
+git remote add origin https://github.com/<your-username>/zap-form.git
+git branch -M main
+git push -u origin main
 ```
 
-Or connect the GitHub repo in the [Vercel dashboard](https://vercel.com/new) for automatic deployments on every push.
+Then go to [vercel.com/new](https://vercel.com/new) → import the repo → deploy. No build settings needed.
+
+Every `git push` to `main` triggers an automatic redeployment.
 
 ---
 
@@ -78,7 +86,7 @@ Or connect the GitHub repo in the [Vercel dashboard](https://vercel.com/new) for
 zap-form/
 ├── index.html    # Contact form
 ├── style.css     # Styles
-├── script.js     # Supabase + Zapier logic
+├── script.js     # Zapier webhook logic
 ├── vercel.json   # Vercel config
 └── README.md
 ```
