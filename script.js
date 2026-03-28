@@ -39,7 +39,6 @@ form.addEventListener("submit", async (e) => {
 async function triggerZapier(data) {
   const res = await fetch(ZAPIER_WEBHOOK_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
 
