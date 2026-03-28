@@ -1,5 +1,5 @@
 // ─── CONFIG (replace with your actual value) ────────────────────────────────
-const ZAPIER_WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/<your-hook-id>/";
+const ZAPIER_WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/27003310/un1c1jl/";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const form      = document.getElementById("contact-form");
